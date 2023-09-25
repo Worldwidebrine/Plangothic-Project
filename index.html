@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Font Test</title>
+  <style id="cssmacro">
+    @font-face {
+      font-family: "current-test";
+      src:
+        /* #constexpr */
+      ;
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    * {
+      font-family: current-test;
+    }
+  </style>
+</head>
+
+<body>
+  <script>
+    (() => {
+      const links = [
+        {
+          url: "./PlangothicP2-Regular.ttf",
+          format: "truetype",
+          size: 8401304
+        }, {
+          url: "./PlangothicP1-Regular%20%28fallback%29.ttf",
+          format: "truetype",
+          size: 14080128
+        }, {
+          url: "./PlangothicP1-Regular%20%28allideo%29.ttf",
+          format: "truetype",
+          size: 24764072
+      }];
+
+      const len = links.length;
+      let size = 0;
+      let files = 0;
+      const style = document.getElementById("cssmacro");
+      const progress = document.body.appendChild(document.createElement("div"));
+      const updateProgress = () => {
+        const progresses = [];
+        for (let i = 0; i < len; i++) {
+          const { url, size, downloaded } = links[i];
+          progresses.push(`${Math.trunc(downloaded*100/size)}% ${downloaded}/${size} ${url}`)
+        }
+        progress.innerText = `${files}/${len} ${size}\n${progresses.join("\n")}`
+      };
+      for (let i = 0; i < len; i++) {
+        const link = links[i];
+        const { url, format } = link;
+        (async () => {
+          const reader = (await fetch(url)).body.getReader();
+          const blobparts = [];
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              break;
+            }
+            const { length } = value;
+            size += length;
+            link.downloaded = length + (link.downloaded ?? 0);
+            blobparts.push(value);
+            updateProgress()
+          }
+          files++;
+          updateProgress();
+          const res = URL.createObjectURL(new Blob(blobparts));
+          style.innerHTML = style.innerHTML.replace("#constoperator", "*/,/*").replace("#constexpr", `*/url("${res}") format("${format}") /* #constoperator *//* #constexpr`)
+        })().catch((e) => {
+          console.error(e);
+          throw e;
+        })
+      }
+
+      const div = document.createElement("div");
+      div.innerText = "测试文本\u{1d372}\u{1d373}\u{1d374}\u{1d375}\u{1d376}";
+      document.body.appendChild(document.createElement("textarea")).addEventListener("input", ({ target }) => {
+        div.innerText = target.value
+      });
+      document.body.appendChild(div)
+
+    })();
+  </script>
+</body>
+
+</html>
